@@ -1,0 +1,44 @@
+on:
+  push:
+    tags:
+      - 'v*'
+
+name: Upload Release Asset
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Use Node.js 16.x
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16.x
+          # === NPM ===
+          # registry-url: 'https://registry.npmjs.org'
+
+          # === GITHUB ===
+          registry-url: 'https://npm.pkg.github.com'
+          # Defaults to the user or organization that owns the workflow file
+          scope: '@${{ github.repository_owner }}'
+
+      - name: Replace ${VERSION} in package.json with the tag version
+        run: VERSION=${GITHUB_REF#refs/tags/v} && sed -i -- "s/\${VERSION}/$VERSION/g" ./package.json
+      - name: Replace ${SCOPE} in package.json with the repo owner + "/"
+        run: SCOPE=@$GITHUB_REPOSITORY_OWNER\\/ && sed -i -- "s/\${SCOPE}/$SCOPE/g" ./package.json
+      - run: npm ci
+      - run: npm run build --if-present
+      - run: npm publish
+        env:
+          # === NPM ===
+          # NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+          # === GITHUB ===
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: Release ${{ github.ref }}
+          files: dist/*
