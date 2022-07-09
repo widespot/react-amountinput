@@ -6,7 +6,10 @@ import AmountInput from './AmountInput';
 export default {
   title: 'ReactComponentLibrary/WrapInput',
   component: AmountInput,
-  argTypes: { onChange: { action: 'changed' } },
+  argTypes: {
+    onChange: { action: 'changed' },
+    onBlur: { action: 'blurred' },
+  },
 };
 
 // More on component templates: https://storybook.js.org/docs/react/writing-stories/introduction#using-args
@@ -18,14 +21,41 @@ function Template(args) {
   );
 }
 
+function ControlTemplate(args) {
+  const [inputValue, setInputValue] = React.useState('');
+  const [value, setValue] = React.useState();
+
+  return (
+    <>
+      <p>
+        <input value={inputValue} onChange={(e) => setInputValue(e.target.value)} />
+        <button onClick={() => setValue(inputValue)}>Send string</button>
+        <button onClick={() => setValue(parseInt(inputValue, 10))}>Send Integer</button>
+        <button onClick={() => setValue(parseFloat(inputValue))}>Send Float</button>
+      </p>
+      <p>
+        <AmountInput
+          value={value}
+          {...args}
+          onChange={(e) => {
+            setValue(value);
+            setInputValue(e.target.value);
+          }}
+        />
+      </p>
+    </>
+  );
+}
+
 export const Placeholder = Template.bind({});
 Placeholder.args = {
   placeholder: 'Nice amount',
-  value: null,
+  name: 'amount',
+  value: '',
 };
 
-export const NoPlaceholder = Template.bind({});
-NoPlaceholder.args = {
+export const ValueControl = ControlTemplate.bind({});
+ValueControl.args = {
   placeholder: null,
-  value: null,
+  name: 'amount',
 };

@@ -1,6 +1,8 @@
 import React from 'react';
+import Big from 'big.js';
 
 const getAlternateThousandSeparator = (decimalSeparator) => (decimalSeparator === '.' ? ',' : '.');
+const getAlternateDecimalSeparator = (thousandSeparator) => (thousandSeparator === '.' ? ',' : '.');
 
 const DEFAULT_DECIMAL_SEP = new Intl.NumberFormat().format(10000.99).substr(6, 1);
 
@@ -48,6 +50,8 @@ const replaceAt = (str, index, replacement) => str.substr(0, index)
 export default function AmountInput({
   onChange, onKeyDown, onKeyUp, onBlur, value, inputRef, ...props
 }) {
+  // ref to the input element
+  const innerRef = React.useRef();
   // Last key down hit
   const keyDown = React.useRef();
 
@@ -55,6 +59,34 @@ export default function AmountInput({
   const decimalSeparator = React.useRef();
   // Current thousand separator. Always set, but never equal to decimal separator
   const thousandSeparator = React.useRef(DEFAULT_THOUSAND_SEP);
+
+  React.useEffect(() => {
+    // Value change from the outside
+
+    // 1. forget about last key down
+    keyDown.current = null;
+
+    // 2. set the element value
+    if (typeof value === 'string' || value instanceof String) {
+      innerRef.current.value = value;
+    } else if (Number.isFinite(value)) {
+      const integer = Number.isInteger(value) ? value : Math.trunc(value);
+      const decimal = Number.isInteger(value) ? null : Big(value).minus(integer).toString().split('.')[1];
+
+      if (decimal == null) {
+        decimalSeparator.current = null;
+      } else {
+        decimalSeparator.current ||= getAlternateDecimalSeparator(thousandSeparator.current);
+      }
+
+      // Re-split integer parts and join using thousand separator
+      const integerStr = chunk(`${integer}`, -3).join(thousandSeparator.current);
+      // Build decimal part string, if any
+      const decimalStr = decimalSeparator.current == null ? '' : `${decimalSeparator.current}${decimal || ''}`;
+
+      innerRef.current.value = `${integerStr}${decimalStr}`;
+    }
+  }, [value]);
 
   // Forward KeyUp events
   const handleOnKeyUp = (e) => {
@@ -213,7 +245,11 @@ export default function AmountInput({
   return (
     <input
       {...props}
-      ref={inputRef}
+      ref={(e) => {
+        innerRef.current = e;
+        inputRef && (typeof inputRef === 'function') && inputRef(e);
+        inputRef && inputRef.hasOwnProperty('current') && (innerRef.current = e);
+      }}
       type="text"
       onKeyDown={handleOnKeyDown}
       onKeyUp={handleOnKeyUp}
