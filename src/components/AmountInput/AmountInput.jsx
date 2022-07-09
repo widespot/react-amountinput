@@ -234,7 +234,7 @@ export default function AmountInput({
       ref={(e) => {
         innerRef.current = e;
         inputRef && (typeof inputRef === 'function') && inputRef(e);
-        inputRef && inputRef.hasOwnProperty('current') && (innerRef.current = e);
+        inputRef && inputRef.hasOwnProperty('current') && (inputRef.current = e);
       }}
       type="text"
       onKeyDown={handleOnKeyDown}

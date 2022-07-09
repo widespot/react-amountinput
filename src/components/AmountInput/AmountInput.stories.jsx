@@ -13,11 +13,16 @@ export default {
 };
 
 // More on component templates: https://storybook.js.org/docs/react/writing-stories/introduction#using-args
-function Template(args) {
+function Template({ inputRef, ...args }) {
   return (
-    <p>
-      <AmountInput {...args} />
-    </p>
+    <>
+      <button onClick={() => console.log(inputRef)}>
+        Log inputRef
+      </button>
+      <p>
+        <AmountInput inputRef={inputRef} {...args} />
+      </p>
+    </>
   );
 }
 
@@ -52,6 +57,7 @@ Placeholder.args = {
   placeholder: 'Nice amount',
   name: 'amount',
   value: '',
+  inputRef: { current: undefined },
 };
 
 export const ValueControl = ControlTemplate.bind({});
