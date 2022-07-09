@@ -75,6 +75,23 @@ export default function AmountInput({
     }
   }, [value]);
 
+  const triggerOnChange = (event) => {
+    if (!onChange) return;
+
+    const [thousandSeparator, decimalSeparator] = [
+      thousandSeparatorRef.current,
+      decimalSeparatorRef.current,
+    ];
+
+    onChange({
+      ...event,
+      amountInput: {
+        thousandSeparator,
+        decimalSeparator,
+      },
+    });
+  };
+
   // Forward KeyUp events
   const handleOnKeyUp = (e) => {
     onKeyUp && onKeyUp(e);
@@ -151,13 +168,14 @@ export default function AmountInput({
     }
 
     if (!keyDown.current || keyDown.current.value !== amountStr) {
-      onChange && onChange(e);
+      triggerOnChange(e);
     }
   };
 
-  const handleArrows = (target, currentKeyDown) => {
-    const { key, value, selectionDirection } = currentKeyDown;
-    let { selectionStart, selectionEnd } = currentKeyDown;
+  const handleArrows = (e) => {
+    const { target, key } = e;
+    const { value, selectionDirection } = target;
+    let { selectionStart, selectionEnd } = target;
 
     const [integer, decimal] = value.split(decimalSeparatorRef.current);
 
@@ -203,29 +221,33 @@ export default function AmountInput({
     target.value = replaceAt(value, segmentPosition, amountSegment);
     target.setSelectionRange(selectionStart, selectionEnd, selectionDirection);
 
-    // TODO forward event
-    onChange && onChange({ target });
+    triggerOnChange(e);
   };
 
   const handleOnKeyDown = (e) => {
-    const { key, target } = e;
-    const {
-      value, selectionStart, selectionEnd, selectionDirection,
-    } = target;
-
-    keyDown.current = {
-      value,
-      key,
-      selectionStart,
-      selectionEnd,
-      selectionDirection,
-    };
+    const { key } = e;
 
     if (['ArrowDown', 'ArrowUp'].includes(key)) {
+      // Capture keyDown event and overwrite behaviour
       e.preventDefault();
+      keyDown.current = null;
 
-      handleArrows(target, keyDown.current);
-    } else if (onKeyDown) onKeyDown(e);
+      handleArrows(e);
+    } else {
+      // capture target status at keyDown
+      const {
+        target: {
+          value, selectionStart, selectionEnd, selectionDirection,
+        },
+      } = e;
+
+      // Backup status to compare with later onChange if any
+      keyDown.current = {
+        value, key, selectionStart, selectionEnd, selectionDirection,
+      };
+
+      if (onKeyDown) onKeyDown(e);
+    }
   };
 
   return (
@@ -233,8 +255,8 @@ export default function AmountInput({
       {...props}
       ref={(e) => {
         innerRef.current = e;
-        inputRef && (typeof inputRef === 'function') && inputRef(e);
-        inputRef && inputRef.hasOwnProperty('current') && (inputRef.current = e);
+        if (inputRef && (typeof inputRef === 'function')) inputRef(e);
+        if (inputRef && inputRef.hasOwnProperty('current')) inputRef.current = e;
       }}
       type="text"
       onKeyDown={handleOnKeyDown}
