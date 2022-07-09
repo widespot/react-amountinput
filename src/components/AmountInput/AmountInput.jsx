@@ -20,8 +20,18 @@ const DEFAULT_THOUSAND_SEP = (() => {
   return c;
 })();
 
+const amountToString = ({
+  integer, decimal, decimalSeparator, thousandSeparator,
+}) => {
+  // Re-split integer parts and join using thousand separator
+  const integerStr = chunk(integer, -3).join(thousandSeparator);
+  // Build decimal part string, if any
+  const decimalStr = decimalSeparator == null ? '' : `${decimalSeparator}${decimal || ''}`;
+
+  return `${integerStr}${decimalStr}`;
+};
+
 // TODO forward ref
-// TODO make use of value props
 export default function AmountInput({
   onChange, onKeyDown, onKeyUp, onBlur, value, inputRef, ...props
 }) {
@@ -31,9 +41,9 @@ export default function AmountInput({
   const keyDown = React.useRef();
 
   // Current decimal separator. Null if no decimal part at all (not even empty)
-  const decimalSeparator = React.useRef();
+  const decimalSeparatorRef = React.useRef();
   // Current thousand separator. Always set, but never equal to decimal separator
-  const thousandSeparator = React.useRef(DEFAULT_THOUSAND_SEP);
+  const thousandSeparatorRef = React.useRef(DEFAULT_THOUSAND_SEP);
 
   React.useEffect(() => {
     // Value change from the outside
@@ -45,21 +55,23 @@ export default function AmountInput({
     if (typeof value === 'string' || value instanceof String) {
       innerRef.current.value = value;
     } else if (Number.isFinite(value)) {
+      // Split number in string parts
       const integer = Number.isInteger(value) ? value : Math.trunc(value);
       const decimal = Number.isInteger(value) ? null : Big(value).minus(integer).toString().split('.')[1];
 
-      if (decimal == null) {
-        decimalSeparator.current = null;
-      } else {
-        decimalSeparator.current ||= getAlternateDecimalSeparator(thousandSeparator.current);
-      }
+      // Adapt decimal separator
+      if (decimal == null) decimalSeparatorRef.current = null;
+      else decimalSeparatorRef.current ||= getAlternateDecimalSeparator(thousandSeparatorRef.current);
 
-      // Re-split integer parts and join using thousand separator
-      const integerStr = chunk(integer, -3).join(thousandSeparator.current);
-      // Build decimal part string, if any
-      const decimalStr = decimalSeparator.current == null ? '' : `${decimalSeparator.current}${decimal || ''}`;
+      // Query the current separators
+      const [decimalSeparator, thousandSeparator] = [
+        decimalSeparatorRef.current, thousandSeparatorRef.current,
+      ];
 
-      innerRef.current.value = `${integerStr}${decimalStr}`;
+      // Build the new value
+      innerRef.current.value = amountToString({
+        integer, decimal, decimalSeparator, thousandSeparator,
+      });
     }
   }, [value]);
 
@@ -88,8 +100,8 @@ export default function AmountInput({
       // A new decimal separator was entered
 
       // Record the new separator
-      decimalSeparator.current = key;
-      thousandSeparator.current = getAlternateThousandSeparator(key);
+      decimalSeparatorRef.current = key;
+      thousandSeparatorRef.current = getAlternateThousandSeparator(key);
 
       // Split int and decimal where the caret currently stands
       [integer, decimal] = [
@@ -100,12 +112,12 @@ export default function AmountInput({
       // Use the previously recorded separator
 
       // split integer and decimal part at the first occurrence of the decimal separator
-      [integer, decimal] = value.split(decimalSeparator.current, 2);
+      [integer, decimal] = value.split(decimalSeparatorRef.current, 2);
 
       if (decimal == null) {
         // if there is no decimal part at all (not even empty),
         // also record that there is no more decimal separator
-        decimalSeparator.current = null;
+        decimalSeparatorRef.current = null;
       }
     }
 
@@ -115,9 +127,9 @@ export default function AmountInput({
     // Clean parts, removing non digits chars
     [integer, decimal] = [integer, decimal].map((i) => i && i.replaceAll(/[^0-9]/ig, ''));
     // Re-split integer parts and join using thousand separator
-    const integerStr = chunk(integer, -3).join(thousandSeparator.current);
+    const integerStr = chunk(integer, -3).join(thousandSeparatorRef.current);
     // Build decimal part string, if any
-    const decimalStr = decimalSeparator.current == null ? '' : `${decimalSeparator.current}${decimal || ''}`;
+    const decimalStr = decimalSeparatorRef.current == null ? '' : `${decimalSeparatorRef.current}${decimal || ''}`;
     // Render amount
     const amountStr = `${integerStr}${decimalStr}`;
 
@@ -147,7 +159,7 @@ export default function AmountInput({
     const { key, value, selectionDirection } = currentKeyDown;
     let { selectionStart, selectionEnd } = currentKeyDown;
 
-    const [integer, decimal] = value.split(decimalSeparator.current);
+    const [integer, decimal] = value.split(decimalSeparatorRef.current);
 
     let amountSegment;
     let segmentPosition;
@@ -162,7 +174,7 @@ export default function AmountInput({
         // Caret at the start of the input
         // => just add a digit to very beginning of the number
         segmentPosition = (integer.length - 3) % 4 === 0 ? -2 : -1;
-        amountSegment = (integer.length - 3) % 4 === 0 ? `0${thousandSeparator.current}` : '0';
+        amountSegment = (integer.length - 3) % 4 === 0 ? `0${thousandSeparatorRef.current}` : '0';
         // move caret to the second position
         selectionStart = 1;
         selectionEnd = 1;
@@ -187,9 +199,8 @@ export default function AmountInput({
 
     amountSegment = incrementAmount(amountSegment, key === 'ArrowUp' ? 1 : -1);
 
-    const amountStr = replaceAt(value, segmentPosition, amountSegment);
     // eslint-disable-next-line no-param-reassign
-    target.value = amountStr;
+    target.value = replaceAt(value, segmentPosition, amountSegment);
     target.setSelectionRange(selectionStart, selectionEnd, selectionDirection);
 
     // TODO forward event
