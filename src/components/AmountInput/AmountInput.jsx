@@ -1,6 +1,10 @@
 import React from 'react';
 import Big from 'big.js';
 
+import chunk from '../../utils/chunk';
+import incrementAmount from '../../utils/incrementAmount';
+import replaceAt from '../../utils/replaceAt';
+
 const getAlternateThousandSeparator = (decimalSeparator) => (decimalSeparator === '.' ? ',' : '.');
 const getAlternateDecimalSeparator = (thousandSeparator) => (thousandSeparator === '.' ? ',' : '.');
 
@@ -15,35 +19,6 @@ const DEFAULT_THOUSAND_SEP = (() => {
 
   return c;
 })();
-
-const chunk = (str, size) => {
-  if (size === 0) throw new Error('size must be greater or smaller than zero but not equal');
-  const out = [];
-  const appendFn = size > 0 ? 'push' : 'unshift';
-  let position = size > 0 ? 0 : str.length + size;
-  while (position >= Math.min(0, size + 1) && position < str.length) {
-    out[appendFn](str.substr(
-      Math.max(0, position),
-      Math.abs(position < 0 ? size - position : size),
-    ));
-    position += size;
-  }
-  return out;
-};
-
-const incrementAmount = (str, inc) => {
-  let out = null;
-  for (let i = 0; i < str.length; i += 1) {
-    if (!str[i].match(/[0-9]/)) out = (out || '') + str[i];
-    else out = (out || '') + ((((parseInt(str[i], 10) + inc) % 10) + 10) % 10);
-  }
-
-  return out;
-};
-
-const replaceAt = (str, index, replacement) => str.substr(0, index)
-  + replacement
-  + str.substr(index + `${replacement}`.length);
 
 // TODO forward ref
 // TODO make use of value props
@@ -80,7 +55,7 @@ export default function AmountInput({
       }
 
       // Re-split integer parts and join using thousand separator
-      const integerStr = chunk(`${integer}`, -3).join(thousandSeparator.current);
+      const integerStr = chunk(integer, -3).join(thousandSeparator.current);
       // Build decimal part string, if any
       const decimalStr = decimalSeparator.current == null ? '' : `${decimalSeparator.current}${decimal || ''}`;
 
