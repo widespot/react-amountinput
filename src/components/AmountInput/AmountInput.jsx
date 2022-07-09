@@ -46,10 +46,8 @@ const replaceAt = (str, index, replacement) => str.substr(0, index)
 // TODO forward ref
 // TODO make use of value props
 export default function AmountInput({
-  onChange, onKeyDown, onKeyUp, onBlur, value, ...props
+  onChange, onKeyDown, onKeyUp, onBlur, value, inputRef, ...props
 }) {
-  const inputRef = React.useRef();
-
   // Last key down hit
   const keyDown = React.useRef();
 
