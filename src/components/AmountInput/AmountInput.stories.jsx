@@ -26,6 +26,32 @@ function Template({ inputRef, ...args }) {
   );
 }
 
+function ControlledTemplate(args) {
+  const [value, setValue] = React.useState();
+  const [acceptOnChange, setAcceptOnChange] = React.useState(true);
+
+  return (
+    <>
+      <p>
+        <input
+          type="checkbox"
+          checked={acceptOnChange}
+          onChange={(e) => setAcceptOnChange(!!e.target.checked)}
+        />
+        {' '}
+        accept on Change
+      </p>
+      <AmountInput
+        {...args}
+        value={value}
+        onChange={(e) => {
+          if (acceptOnChange) setValue(e.target.value);
+        }}
+      />
+    </>
+  );
+}
+
 function ControlTemplate(args) {
   const [inputValue, setInputValue] = React.useState('');
   const [value, setValue] = React.useState();
@@ -60,8 +86,14 @@ Placeholder.args = {
   inputRef: { current: undefined },
 };
 
-export const ValueControl = ControlTemplate.bind({});
-ValueControl.args = {
-  placeholder: null,
+export const InputControl = ControlTemplate.bind({});
+InputControl.args = {
+  placeholder: 'amount...',
+  name: 'amount',
+};
+
+export const ControlledValue = ControlledTemplate.bind({});
+ControlledValue.args = {
+  placeholder: 'amount...',
   name: 'amount',
 };

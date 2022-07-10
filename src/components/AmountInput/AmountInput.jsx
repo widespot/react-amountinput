@@ -45,15 +45,10 @@ export default function AmountInput({
   // Current thousand separator. Always set, but never equal to decimal separator
   const thousandSeparatorRef = React.useRef(DEFAULT_THOUSAND_SEP);
 
-  React.useEffect(() => {
-    // Value change from the outside
-
-    // 1. forget about last key down
-    keyDown.current = null;
-
-    // 2. set the element value
+  let innerValue = null;
+  if (value != null) {
     if (typeof value === 'string' || value instanceof String) {
-      innerRef.current.value = value;
+      innerValue = value;
     } else if (Number.isFinite(value)) {
       // Split number in string parts
       const integer = Number.isInteger(value) ? value : Math.trunc(value);
@@ -69,11 +64,11 @@ export default function AmountInput({
       ];
 
       // Build the new value
-      innerRef.current.value = amountToString({
+      innerValue = amountToString({
         integer, decimal, decimalSeparator, thousandSeparator,
       });
     }
-  }, [value]);
+  }
 
   const triggerOnChange = (event) => {
     if (!onChange) return;
@@ -94,13 +89,13 @@ export default function AmountInput({
 
   // Forward KeyUp events
   const handleOnKeyUp = (e) => {
-    onKeyUp && onKeyUp(e);
+    if (onKeyUp) onKeyUp(e);
   };
 
   const handleOnBlur = (e) => {
     keyDown.current = null;
     // Forward Blur events
-    onBlur && onBlur(e);
+    if (onBlur) onBlur(e);
   };
 
   const handleOnChange = (e) => {
@@ -258,6 +253,7 @@ export default function AmountInput({
         if (inputRef && (typeof inputRef === 'function')) inputRef(e);
         if (inputRef && inputRef.hasOwnProperty('current')) inputRef.current = e;
       }}
+      value={innerValue}
       type="text"
       onKeyDown={handleOnKeyDown}
       onKeyUp={handleOnKeyUp}
